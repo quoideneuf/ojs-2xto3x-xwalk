@@ -1,14 +1,14 @@
 #!/usr/bin/env php
 <?php
-
-require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/tests/XmlOutputTest.php';
-
 use PHPUnit\Framework\ExpectationFailedException as ExpectationFailedException;
 
 class TestShouldFailException extends Exception { }
 
 $opts = getopt('', ['xml:', 'out:', 'xsl:', 'test']);
+
+if (key_exists('test', $opts)) {
+	require __DIR__ . '/tests/XmlOutputTest.php';
+}
 
 if (!key_exists('xml', $opts) or !key_exists('out', $opts)) {
 	usageAndExit();
