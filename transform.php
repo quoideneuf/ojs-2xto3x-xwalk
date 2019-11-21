@@ -4,13 +4,13 @@ use PHPUnit\Framework\ExpectationFailedException as ExpectationFailedException;
 
 class TestShouldFailException extends Exception { }
 
-$opts = getopt('', ['xml:', 'out:', 'xsl:', 'test']);
+$opts = getopt('', ['xml:', 'out:', 'xsl:', 'secref:', 'article-defaults:', 'test']);
 
 if (key_exists('test', $opts)) {
 	require __DIR__ . '/tests/XmlOutputTest.php';
 }
 
-if (!key_exists('xml', $opts) or !key_exists('out', $opts)) {
+if (!key_exists('xml', $opts)) {
 	usageAndExit();
 }
 
@@ -24,7 +24,26 @@ if (key_exists('xsl', $opts)) {
 
 	$xsl = new XSLTProcessor();
 	$xsl->importStyleSheet($xsldoc);
-	file_put_contents($opts['out'], $xsl->transformToXML($xmldoc));
+
+	if (key_exists('article-defaults', $opts)) {
+		$defaults = file_get_contents($opts['article-defaults']);
+		foreach (explode("\n", $defaults) as $default) {
+			$default = explode("=", trim($default));
+			if (sizeof($default) == 2) {
+				$xsl->setParameter('', array_shift($default), array_shift($default));
+			}
+		}
+	}
+
+	if (key_exists('secref', $opts)) {
+		$xsl->setParameter('', 'secref', $opts['secref']);
+	}
+
+	if (key_exists('out', $opts)) {
+		file_put_contents($opts['out'], $xsl->transformToXML($xmldoc));
+	} else {
+		echo $xsl->transformToXML($xmldoc);
+	}
 }
 
 # Test transformed XML...

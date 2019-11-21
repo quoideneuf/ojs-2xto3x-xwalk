@@ -3,6 +3,13 @@
                 xmlns:ns2="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                 xmlns="http://pkp.sfu.ca" version="1.0">
   <xsl:output method="xml" encoding="utf-8" indent="yes"/>
+  <xsl:param name="section_ref" />
+  <xsl:param name="seq" />
+  <xsl:param name="access_status" />
+  <xsl:param name="volume" />
+  <xsl:param name="number" />
+  <xsl:param name="year" />
+
   <xsl:template match="/">
     <xsl:apply-templates />
   </xsl:template>
@@ -39,7 +46,6 @@
       <articles>
         <xsl:for-each select="section">
           <xsl:apply-templates select="article">
-            <xsl:with-param name="section_ref" select="abbrev" />
             <xsl:with-param name="date_published" select="preceding-sibling::date_published" />
           </xsl:apply-templates>
         </xsl:for-each>
@@ -54,24 +60,57 @@
     </section>
   </xsl:template>
 
-  <xsl:template match="articles">
+  <xsl:template match="articles | papers">
     <articles>
       <xsl:apply-templates />
     </articles>
   </xsl:template>
 
-  <xsl:template match="article">
-    <xsl:param name="section_ref" select="'SECREF'" />
-    <xsl:param name="date_published" select="'1212-12-12'" />
+  <xsl:template match="article | paper">
+    <xsl:param name="date_published" />
     <article stage="submission">
-      <xsl:attribute name="section_ref">
-        <xsl:value-of select="$section_ref" />
-      </xsl:attribute>
-      <xsl:attribute name="date_published">
-        <xsl:value-of select="$date_published" />
-      </xsl:attribute>
+      <xsl:choose>
+        <xsl:when test="string-length(parent::section/abbrev)">
+          <xsl:attribute name="section_ref">
+            <xsl:value-of select="parent::section/abbrev" />
+          </xsl:attribute>
+        </xsl:when>
+        <xsl:when test="string-length($section_ref)">
+          <xsl:attribute name="section_ref">
+            <xsl:value-of select="$section_ref" />
+          </xsl:attribute>
+        </xsl:when>
+      </xsl:choose>
+      <xsl:choose>
+        <xsl:when test="string-length(date_published)">
+          <xsl:attribute name="date_published">
+            <xsl:value-of select="date_published" />
+          </xsl:attribute>
+        </xsl:when>
+        <xsl:when test="string-length($date_published)">
+          <xsl:attribute name="date_published">
+            <xsl:value-of select="$date_published" />
+          </xsl:attribute>
+        </xsl:when>
+      </xsl:choose>
+      <xsl:if test="string-length($seq)">
+        <xsl:attribute name="seq">
+          <xsl:value-of select="$seq" />
+        </xsl:attribute>
+      </xsl:if>
       <xsl:copy-of select="@*" />
+      <!-- <xsl:if test="not(@language) and string-length(title/@locale)"> -->
+      <!--   <xsl:attribute name="language"> -->
+      <!--     <xsl:value-of select="substring(title/@locale, 1, 2)" /> -->
+      <!--   </xsl:attribute> -->
+      <!-- </xsl:if> -->
+      <xsl:if test="not(@locale) and string-length(title/@locale)">
+        <xsl:attribute name="locale">
+          <xsl:value-of select="title/@locale" />
+        </xsl:attribute>
+      </xsl:if>
       <xsl:apply-templates select="title"/>
+      <xsl:apply-templates select="abstract"/>
       <xsl:apply-templates select="permissions"/>
       <xsl:apply-templates select="indexing/subject"/>
       <xsl:if test="count(author) !=0">
@@ -80,6 +119,13 @@
         </authors>
       </xsl:if>
       <xsl:apply-templates select="galley"/>
+      <xsl:if test="not(ancestor::issue) and string-length($volume) and string-length($number) and string-length($year)">
+        <issue_identification>
+          <volume><xsl:value-of select="$volume" /></volume>
+          <number><xsl:value-of select="$number" /></number>
+          <year><xsl:value-of select="$year" /></year>
+        </issue_identification>
+      </xsl:if>
     </article>
   </xsl:template>
 
@@ -88,6 +134,13 @@
       <xsl:copy-of select="@*" />
       <xsl:apply-templates />
     </title>
+  </xsl:template>
+
+  <xsl:template match="abstract">
+    <abstract>
+      <xsl:copy-of select="@*" />
+      <xsl:apply-templates />
+    </abstract>
   </xsl:template>
 
   <xsl:template match="author">
