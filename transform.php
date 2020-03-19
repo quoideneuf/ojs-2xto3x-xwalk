@@ -1,7 +1,6 @@
 #!/usr/bin/env php
 <?php
 use PHPUnit\Framework\ExpectationFailedException as ExpectationFailedException;
-
 class TestShouldFailException extends Exception { }
 
 $opts = getopt('', ['xml:', 'out:', 'xsl:', 'secref:', 'article-defaults:', 'test']);
@@ -14,17 +13,44 @@ if (!key_exists('xml', $opts)) {
 	usageAndExit();
 }
 
-# Transform if asked to
-if (key_exists('xsl', $opts)) {
-	$xsldoc = new DOMDocument();
-	$xsldoc->load($opts['xsl']);
+if (!key_exists('xsl', $opts) and key_exists('test', $opts)) {
+	try {
+		$test_should_fail = new XmlOutputTest($opts['xml']);
+		$test_should_fail->testXml();
+		throw new TestShouldFailException();
+	} catch (ExpectationFailedException $e) {
+		echo "Caught ExpectationFailedException\n";
+	}
+	$test_should_pass = new XmlOutputTest($opts['out']);
+	$test_should_pass->testXml();
+	echo "ok";
+	exit();
+}
 
+$xsldoc = new DOMDocument();
+$xsldoc->load($opts['xsl']);
+
+$xsl = new XSLTProcessor();
+$xsl->importStyleSheet($xsldoc);
+
+if (is_dir($opts['xml']) && is_dir($opts['out'])) {
+	$dh = opendir($opts['xml']);
+	while ($file = readdir($dh)) {
+		echo $file;
+		if ($file === '.') continue;
+		if ($file === '..') continue;
+		transform($opts['xml'] . '/' . $file, $opts['out'] . '/' . $file);
+	}
+	closedir($dh);
+} else {
+	transform($opts['xml'], $opts['out']);
+}
+
+function transform($source, $target = null) {
+	global $opts;
+	global $xsl;
 	$xmldoc = new DOMDocument();
-	$xmldoc->load($opts['xml']);
-
-	$xsl = new XSLTProcessor();
-	$xsl->importStyleSheet($xsldoc);
-
+	$xmldoc->load($source);
 	if (key_exists('article-defaults', $opts)) {
 		$defaults = file_get_contents($opts['article-defaults']);
 		foreach (explode("\n", $defaults) as $default) {
@@ -39,8 +65,8 @@ if (key_exists('xsl', $opts)) {
 		$xsl->setParameter('', 'secref', $opts['secref']);
 	}
 
-	if (key_exists('out', $opts)) {
-		file_put_contents($opts['out'], $xsl->transformToXML($xmldoc));
+	if ($target) {
+		file_put_contents($target, $xsl->transformToXML($xmldoc));
 	} else {
 		echo $xsl->transformToXML($xmldoc);
 	}
@@ -52,20 +78,6 @@ if (key_exists('xsl', $opts) and key_exists('test', $opts)) {
 	$test_should_pass->testXml();
 }
 
-# ..or sanity test the tests
-if (!key_exists('xsl', $opts) and key_exists('test', $opts)) {
-	try {
-		$test_should_fail = new XmlOutputTest($opts['xml']);
-		$test_should_fail->testXml();
-		throw new TestShouldFailException();
-	} catch (ExpectationFailedException $e) {
-		echo "Caught ExpectationFailedException\n";
-	}
-	$test_should_pass = new XmlOutputTest($opts['out']);
-	$test_should_pass->testXml();
-	echo "ok";
-	exit();
-}
 
 
 function usageAndExit() {

@@ -22,3 +22,9 @@ php transform.php --xml 2xports/articles.xml --out 3xports/testing.xml --xsl tra
 ```
 
 Depending on your situation, it may be necessary to provide default values in order for the output to be importable. See the example defaults value.
+
+You can transform whole directories:
+
+```
+php transform.php --xml raw-data-dir --out converted-data-dir --xsl transform.xsl
+```
