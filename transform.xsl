@@ -98,6 +98,11 @@
           <xsl:value-of select="$seq" />
         </xsl:attribute>
       </xsl:if>
+      <xsl:if test="string-length($access_status)">
+        <xsl:attribute name="access_status">
+          <xsl:value-of select="$access_status" />
+        </xsl:attribute>
+      </xsl:if>
       <xsl:copy-of select="@*" />
       <!-- <xsl:if test="not(@language) and string-length(title/@locale)"> -->
       <!--   <xsl:attribute name="language"> -->
@@ -229,18 +234,38 @@
 
   <xsl:template match="file">
     <submission_file stage="submission">
-      <revision number="1" genre="Article Text" filename="{embed/@filename}" filetype="{embed/@mime_type}">
-        <name locale="{ancestor::galley/@locale}"><xsl:value-of select="embed/@filename" /></name>
-        <xsl:apply-templates select="embed" />
+      <revision number="1" genre="Article Text">
+        <xsl:apply-templates select="embed | href" />
       </revision>
     </submission_file>
   </xsl:template>
 
   <xsl:template match="embed">
+    <xsl:attribute name="filename"><xsl:value-of select="@filename" /></xsl:attribute>
+    <xsl:attribute name="filetype"><xsl:value-of select="@mime_type" /></xsl:attribute>
+    <name locale="{ancestor::galley/@locale}"><xsl:value-of select="embed/@filename" /></name>
     <embed encoding="{@encoding}">
       <xsl:apply-templates select="node()" mode="copy" />
     </embed>
   </xsl:template>
+
+  <xsl:template match="href">
+    <xsl:attribute name="filetype"><xsl:value-of select="@mime_type" /></xsl:attribute>
+    <xsl:attribute name="filename">
+      <xsl:call-template name="parseFilename">
+        <xsl:with-param name="fn" select="@src" />
+      </xsl:call-template>
+    </xsl:attribute>
+    <name locale="{ancestor::galley/@locale}">
+      <xsl:call-template name="parseFilename">
+        <xsl:with-param name="fn" select="@src" />
+      </xsl:call-template>
+    </name>
+    <href src="{@src}" >
+      <xsl:apply-templates select="node()" mode="copy" />
+    </href>
+  </xsl:template>
+
   <xsl:template match="*" mode="copy">
     <xsl:element name="{name()}" namespace="http://pkp.sfu.ca">
       <xsl:copy-of select="@*" />
@@ -261,5 +286,19 @@
     </xsl:attribute>
   </xsl:template>
 
+
+  <xsl:template name="parseFilename">
+    <xsl:param name="fn" />
+    <xsl:choose>
+      <xsl:when test="contains($fn, '/')">
+        <xsl:call-template name="parseFilename">
+          <xsl:with-param name="fn" select="substring-after($fn, '/')" />
+        </xsl:call-template>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:value-of select="$fn" />
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
 
 </xsl:stylesheet>
