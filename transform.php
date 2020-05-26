@@ -36,7 +36,7 @@ $xsl->importStyleSheet($xsldoc);
 if (is_dir($opts['xml']) && is_dir($opts['out'])) {
 	$dh = opendir($opts['xml']);
 	while ($file = readdir($dh)) {
-		echo $file;
+		echo $file . "\n";
 		if ($file === '.') continue;
 		if ($file === '..') continue;
 		transform($opts['xml'] . '/' . $file, $opts['out'] . '/' . $file);
@@ -62,7 +62,7 @@ function transform($source, $target = null) {
 	}
 
 	if (key_exists('secref', $opts)) {
-		$xsl->setParameter('', 'secref', $opts['secref']);
+		$xsl->setParameter('', 'section_ref', $opts['secref']);
 	}
 
 	if ($target) {

@@ -172,6 +172,9 @@
         </familyname>
       </xsl:if>
       <xsl:apply-templates select="affiliation | country | email" mode="copy"/>
+      <xsl:if test="not(string-length(email))">
+        <email>email.address@example.com</email>
+      </xsl:if>
     </author>
   </xsl:template>
 
@@ -233,11 +236,16 @@
   </xsl:template>
 
   <xsl:template match="file">
-    <submission_file stage="submission">
+    <submission_file stage="submission" id="{position()}">
       <revision number="1" genre="Article Text">
         <xsl:apply-templates select="embed | href" />
       </revision>
     </submission_file>
+    <article_galley>
+      <name locale="en_US">PDF</name>
+      <seq>0</seq>
+      <submission_file_ref id="{position()}" revision="1"/>
+    </article_galley>
   </xsl:template>
 
   <xsl:template match="embed">
